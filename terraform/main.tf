@@ -1,3 +1,9 @@
+# Get latest Node.js solution stack
+data "aws_elastic_beanstalk_solution_stack" "nodejs" {
+  most_recent = true
+  name_regex  = "^64bit Amazon Linux 2 .* running Node.js 18$"
+}
+
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elastic_beanstalk_application
 resource "aws_elastic_beanstalk_application" "todo_app" {
   name        = "nodejs-todo-app"
@@ -69,7 +75,7 @@ resource "aws_security_group" "beanstalk_lb" {
 resource "aws_elastic_beanstalk_environment" "todo_env" {
   name                = "nodejs-todo-env"
   application         = aws_elastic_beanstalk_application.todo_app.name
-  solution_stack_name = "64bit Amazon Linux 2 v5.8.4 running Node.js 18"
+  solution_stack_name = data.aws_elastic_beanstalk_solution_stack.nodejs.name
   version_label       = aws_elastic_beanstalk_application_version.app_version.name
 
   # Instance Configuration
