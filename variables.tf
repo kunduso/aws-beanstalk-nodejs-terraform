@@ -2,7 +2,7 @@
 variable "region" {
   description = "Infrastructure region"
   type        = string
-  default     = "us-east-2"
+  default     = "us-west-2"
 }
 #Define IAM User Access Key
 variable "access_key" {
