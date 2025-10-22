@@ -34,11 +34,11 @@ resource "aws_s3_object" "app_version" {
 
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elastic_beanstalk_application_version
 resource "aws_elastic_beanstalk_application_version" "app_version" {
-  name         = "app-${data.archive_file.app_zip.output_md5}"
-  application  = aws_elastic_beanstalk_application.todo_app.name
-  description  = "Application version created by Terraform"
-  bucket       = aws_s3_bucket.app_versions.bucket
-  key          = aws_s3_object.app_version.key
+  name        = "app-${data.archive_file.app_zip.output_md5}"
+  application = aws_elastic_beanstalk_application.todo_app.name
+  description = "Application version created by Terraform"
+  bucket      = aws_s3_bucket.app_versions.bucket
+  key         = aws_s3_object.app_version.key
 }
 
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group
