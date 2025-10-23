@@ -85,6 +85,19 @@ resource "aws_elastic_beanstalk_environment" "todo_env" {
     value     = "t3.micro"
   }
 
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "IamInstanceProfile"
+    value     = "aws-elasticbeanstalk-ec2-role"
+  }
+
+  # Service Role
+  setting {
+    namespace = "aws:elasticbeanstalk:environment"
+    name      = "ServiceRole"
+    value     = "aws-elasticbeanstalk-service-role"
+  }
+
   # Environment Type (LoadBalanced = with ALB)
   setting {
     namespace = "aws:elasticbeanstalk:environment"
@@ -92,7 +105,7 @@ resource "aws_elastic_beanstalk_environment" "todo_env" {
     value     = "LoadBalanced"
   }
 
-  # Auto Scaling Configuration (only applies if LoadBalanced)
+  # Auto Scaling Configuration
   setting {
     namespace = "aws:autoscaling:asg"
     name      = "MinSize"
@@ -105,16 +118,60 @@ resource "aws_elastic_beanstalk_environment" "todo_env" {
     value     = "3"
   }
 
-  # Load Balancer Configuration (only applies if LoadBalanced)
+  # Load Balancer Configuration
   setting {
     namespace = "aws:elasticbeanstalk:environment:process:default"
     name      = "HealthCheckPath"
     value     = "/"
   }
 
+  # Custom Auto Scaling Triggers
+  # Scale up when CPU > 60% (more responsive than default 80%)
   setting {
-    namespace = "aws:elbv2:loadbalancer"
-    name      = "SecurityGroups"
-    value     = aws_security_group.beanstalk_lb.id
+    namespace = "aws:autoscaling:trigger"
+    name      = "UpperThreshold"
+    value     = "60"
   }
+
+  # Scale down when CPU < 25% (more conservative than default 10%)
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "LowerThreshold"
+    value     = "25"
+  }
+
+  # Monitor CPU utilization
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "MeasureName"
+    value     = "CPUUtilization"
+  }
+
+  # Check every 3 minutes (faster than default 5 minutes)
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "Period"
+    value     = "3"
+  }
+
+  # How many data points to evaluate
+  setting {
+    namespace = "aws:autoscaling:trigger"
+    name      = "EvaluationPeriods"
+    value     = "2"
+  }
+
+  # Cooldown period between scaling actions (5 minutes)
+  setting {
+    namespace = "aws:autoscaling:asg"
+    name      = "Cooldown"
+    value     = "300"
+  }
+
+  # Remove custom security group setting that might be causing issues
+  # setting {
+  #   namespace = "aws:elbv2:loadbalancer"
+  #   name      = "SecurityGroups"
+  #   value     = aws_security_group.beanstalk_lb.id
+  # }
 }
