@@ -1,7 +1,7 @@
 # IAM Role for Beanstalk Service
 resource "aws_iam_role" "beanstalk_service" {
   name = "aws-elasticbeanstalk-service-role"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -24,7 +24,7 @@ resource "aws_iam_role_policy_attachment" "beanstalk_service" {
 # IAM Role for EC2 Instances
 resource "aws_iam_role" "beanstalk_ec2" {
   name = "aws-elasticbeanstalk-ec2-role"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
