@@ -51,6 +51,7 @@ resource "aws_elastic_beanstalk_application_version" "app_version" {
 resource "aws_security_group" "beanstalk_lb" {
   name_prefix = "beanstalk-lb-"
   description = "Security group for Beanstalk load balancer"
+  vpc_id      = module.vpc.vpc.id
 
   ingress {
     from_port   = 80
@@ -123,6 +124,34 @@ resource "aws_elastic_beanstalk_environment" "todo_env" {
     namespace = "aws:elasticbeanstalk:environment:process:default"
     name      = "HealthCheckPath"
     value     = "/"
+  }
+
+  # VPC Configuration
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "VPCId"
+    value     = module.vpc.vpc.id
+  }
+
+  # Private subnets for EC2 instances (comma-separated)
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "Subnets"
+    value     = join(",", [for subnet in module.vpc.aws_subnet.private : subnet.id])
+  }
+
+  # Public subnets for load balancer (comma-separated)
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "ELBSubnets"
+    value     = join(",", [for subnet in module.vpc.aws_subnet.public : subnet.id])
+  }
+
+  # Associate public IP to instances (set to false for private subnets)
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "AssociatePublicIpAddress"
+    value     = "false"
   }
 
   # Custom Auto Scaling Triggers
