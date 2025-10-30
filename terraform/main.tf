@@ -53,20 +53,6 @@ resource "aws_security_group" "beanstalk_alb" {
   description = "Security group for Beanstalk Application Load Balancer"
   vpc_id      = module.vpc.vpc.id
 
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.beanstalk_instances.id]
-  }
-
   tags = {
     Name = "beanstalk-alb-sg"
   }
@@ -78,23 +64,46 @@ resource "aws_security_group" "beanstalk_instances" {
   description = "Security group for Beanstalk EC2 instances"
   vpc_id      = module.vpc.vpc.id
 
-  ingress {
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.beanstalk_alb.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
     Name = "beanstalk-instances-sg"
   }
+}
+
+# Security group rules
+resource "aws_security_group_rule" "alb_ingress" {
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.beanstalk_alb.id
+}
+
+resource "aws_security_group_rule" "alb_egress" {
+  type                     = "egress"
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.beanstalk_instances.id
+  security_group_id        = aws_security_group.beanstalk_alb.id
+}
+
+resource "aws_security_group_rule" "instances_ingress" {
+  type                     = "ingress"
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.beanstalk_alb.id
+  security_group_id        = aws_security_group.beanstalk_instances.id
+}
+
+resource "aws_security_group_rule" "instances_egress" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.beanstalk_instances.id
 }
 
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elastic_beanstalk_environment
