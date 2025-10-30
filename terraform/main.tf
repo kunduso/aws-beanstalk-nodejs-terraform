@@ -47,10 +47,10 @@ resource "aws_elastic_beanstalk_application_version" "app_version" {
   key         = aws_s3_object.app_version.key
 }
 
-#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group
-resource "aws_security_group" "beanstalk_lb" {
-  name_prefix = "beanstalk-lb-"
-  description = "Security group for Beanstalk load balancer"
+# Security group for Application Load Balancer
+resource "aws_security_group" "beanstalk_alb" {
+  name_prefix = "beanstalk-alb-"
+  description = "Security group for Beanstalk Application Load Balancer"
   vpc_id      = module.vpc.vpc.id
 
   ingress {
@@ -61,6 +61,31 @@ resource "aws_security_group" "beanstalk_lb" {
   }
 
   egress {
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.beanstalk_instances.id]
+  }
+
+  tags = {
+    Name = "beanstalk-alb-sg"
+  }
+}
+
+# Security group for EC2 instances
+resource "aws_security_group" "beanstalk_instances" {
+  name_prefix = "beanstalk-instances-"
+  description = "Security group for Beanstalk EC2 instances"
+  vpc_id      = module.vpc.vpc.id
+
+  ingress {
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.beanstalk_alb.id]
+  }
+
+  egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -68,7 +93,7 @@ resource "aws_security_group" "beanstalk_lb" {
   }
 
   tags = {
-    Name = "beanstalk-lb-sg"
+    Name = "beanstalk-instances-sg"
   }
 }
 
@@ -89,14 +114,14 @@ resource "aws_elastic_beanstalk_environment" "todo_env" {
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "IamInstanceProfile"
-    value     = "aws-elasticbeanstalk-ec2-role"
+    value     = aws_iam_instance_profile.beanstalk_ec2.name
   }
 
   # Service Role
   setting {
     namespace = "aws:elasticbeanstalk:environment"
     name      = "ServiceRole"
-    value     = "aws-elasticbeanstalk-service-role"
+    value     = aws_iam_role.beanstalk_service.arn
   }
 
   # Environment Type (LoadBalanced = with ALB)
@@ -126,6 +151,18 @@ resource "aws_elastic_beanstalk_environment" "todo_env" {
     value     = "/"
   }
 
+  setting {
+    namespace = "aws:elasticbeanstalk:environment:process:default"
+    name      = "Port"
+    value     = "8080"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:environment:process:default"
+    name      = "Protocol"
+    value     = "HTTP"
+  }
+
   # VPC Configuration
   setting {
     namespace = "aws:ec2:vpc"
@@ -133,25 +170,38 @@ resource "aws_elastic_beanstalk_environment" "todo_env" {
     value     = module.vpc.vpc.id
   }
 
-  # Private subnets for EC2 instances (comma-separated)
+  # Public subnets for EC2 instances (temporary for debugging)
   setting {
     namespace = "aws:ec2:vpc"
     name      = "Subnets"
-    value     = join(",", [for subnet in module.vpc.aws_subnet.private : subnet.id])
+    value     = join(",", [for subnet in module.vpc.public_subnets : subnet.id])
   }
 
-  # Public subnets for load balancer (comma-separated)
+  # Public subnets for load balancer
   setting {
     namespace = "aws:ec2:vpc"
     name      = "ELBSubnets"
-    value     = join(",", [for subnet in module.vpc.aws_subnet.public : subnet.id])
+    value     = join(",", [for subnet in module.vpc.public_subnets : subnet.id])
   }
 
-  # Associate public IP to instances (set to false for private subnets)
+  # Associate public IP to instances (set to true for public subnets)
   setting {
     namespace = "aws:ec2:vpc"
     name      = "AssociatePublicIpAddress"
-    value     = "false"
+    value     = "true"
+  }
+
+  # Use custom security groups
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "SecurityGroups"
+    value     = aws_security_group.beanstalk_instances.id
+  }
+
+  setting {
+    namespace = "aws:elbv2:loadbalancer"
+    name      = "SecurityGroups"
+    value     = aws_security_group.beanstalk_alb.id
   }
 
   # Custom Auto Scaling Triggers
