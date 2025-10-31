@@ -71,12 +71,16 @@ resource "aws_security_group" "beanstalk_instances" {
 
 # Security group rules
 resource "aws_security_group_rule" "alb_ingress" {
+  #checkov:skip=CKV_AWS_260: "Ensure no security groups allow ingress from 0.0.0.0:0 to port 80"
+  #Reason: Skipping for demo purposes to showcase Elastic Beanstalk functionality. 
+  #        For production workloads, implement proper access controls and consider using HTTPS with restricted CIDR blocks.
   type              = "ingress"
   from_port         = 80
   to_port           = 80
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.beanstalk_alb.id
+  description       = "Allow HTTP traffic from internet to ALB"
 }
 
 resource "aws_security_group_rule" "alb_egress" {
@@ -86,6 +90,7 @@ resource "aws_security_group_rule" "alb_egress" {
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.beanstalk_instances.id
   security_group_id        = aws_security_group.beanstalk_alb.id
+  description              = "Allow ALB to forward traffic to instances on port 8080"
 }
 
 resource "aws_security_group_rule" "instances_ingress" {
@@ -95,15 +100,27 @@ resource "aws_security_group_rule" "instances_ingress" {
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.beanstalk_alb.id
   security_group_id        = aws_security_group.beanstalk_instances.id
+  description              = "Allow traffic from ALB to instances on port 8080"
 }
 
 resource "aws_security_group_rule" "instances_egress" {
   type              = "egress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.beanstalk_instances.id
+  description       = "Allow HTTPS outbound for package downloads"
+}
+
+resource "aws_security_group_rule" "instances_egress_http" {
+  type              = "egress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.beanstalk_instances.id
+  description       = "Allow HTTP outbound for package downloads"
 }
 
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elastic_beanstalk_environment
@@ -256,10 +273,31 @@ resource "aws_elastic_beanstalk_environment" "todo_env" {
     value     = "300"
   }
 
-  # Remove custom security group setting that might be causing issues
-  # setting {
-  #   namespace = "aws:elbv2:loadbalancer"
-  #   name      = "SecurityGroups"
-  #   value     = aws_security_group.beanstalk_lb.id
-  # }
+  # Enable managed platform updates
+  setting {
+    namespace = "aws:elasticbeanstalk:managedactions"
+    name      = "ManagedActionsEnabled"
+    value     = "true"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:managedactions:platformupdate"
+    name      = "UpdateLevel"
+    value     = "minor"
+  }
+
+  # Enable enhanced health reporting
+  setting {
+    namespace = "aws:elasticbeanstalk:healthreporting:system"
+    name      = "SystemType"
+    value     = "enhanced"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:healthreporting:system"
+    name      = "HealthStreamingEnabled"
+    value     = "true"
+  }
+
+
 }
