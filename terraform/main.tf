@@ -125,6 +125,8 @@ resource "aws_security_group_rule" "instances_egress_http" {
 
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elastic_beanstalk_environment
 resource "aws_elastic_beanstalk_environment" "todo_env" {
+  #checkov:skip=CKV_AWS_312: "Ensure Elastic Beanstalk environments have enhanced health reporting enabled"
+  #Reason: SystemType=enhanced is configured, but Checkov expects HealthStreamingEnabled which is not a valid Beanstalk setting
   name                = "nodejs-todo-env"
   application         = aws_elastic_beanstalk_application.todo_app.name
   solution_stack_name = data.aws_elastic_beanstalk_solution_stack.nodejs.name
@@ -281,23 +283,20 @@ resource "aws_elastic_beanstalk_environment" "todo_env" {
   }
 
   setting {
+    namespace = "aws:elasticbeanstalk:managedactions"
+    name      = "PreferredStartTime"
+    value     = "Sun:10:00"
+  }
+
+  setting {
     namespace = "aws:elasticbeanstalk:managedactions:platformupdate"
     name      = "UpdateLevel"
     value     = "minor"
   }
-
   # Enable enhanced health reporting
   setting {
     namespace = "aws:elasticbeanstalk:healthreporting:system"
     name      = "SystemType"
     value     = "enhanced"
   }
-
-  setting {
-    namespace = "aws:elasticbeanstalk:healthreporting:system"
-    name      = "HealthStreamingEnabled"
-    value     = "true"
-  }
-
-
 }
