@@ -16,6 +16,16 @@ resource "aws_s3_bucket" "app_versions" {
   force_destroy = true
 }
 
+#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block
+resource "aws_s3_bucket_public_access_block" "app_versions" {
+  bucket = aws_s3_bucket.app_versions.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 #https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string
 resource "random_string" "bucket_suffix" {
   length  = 8
