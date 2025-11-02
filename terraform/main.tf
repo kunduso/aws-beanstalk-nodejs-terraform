@@ -208,11 +208,11 @@ resource "aws_elastic_beanstalk_environment" "todo_env" {
     value     = module.vpc.vpc.id
   }
 
-  # Public subnets for EC2 instances (temporary for debugging)
+  # Private subnets for EC2 instances
   setting {
     namespace = "aws:ec2:vpc"
     name      = "Subnets"
-    value     = join(",", [for subnet in module.vpc.public_subnets : subnet.id])
+    value     = join(",", [for subnet in module.vpc.private_subnets : subnet.id])
   }
 
   # Public subnets for load balancer
@@ -222,11 +222,11 @@ resource "aws_elastic_beanstalk_environment" "todo_env" {
     value     = join(",", [for subnet in module.vpc.public_subnets : subnet.id])
   }
 
-  # Associate public IP to instances (set to true for public subnets)
+  # No public IP for instances in private subnets
   setting {
     namespace = "aws:ec2:vpc"
     name      = "AssociatePublicIpAddress"
-    value     = "true"
+    value     = "false"
   }
 
   # Use custom security groups
