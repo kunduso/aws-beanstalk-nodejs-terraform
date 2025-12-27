@@ -18,12 +18,12 @@ resource "aws_s3_bucket" "app_versions" {
 
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration
 resource "aws_s3_bucket_server_side_encryption_configuration" "app_versions" {
-  #checkov:skip=CKV_AWS_145: "Using AES256 encryption instead of KMS for demo simplicity"
   bucket = aws_s3_bucket.app_versions.id
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.encrypt_storage.arn
     }
   }
 }
