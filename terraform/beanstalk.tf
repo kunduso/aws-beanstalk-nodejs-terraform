@@ -10,44 +10,6 @@ resource "aws_elastic_beanstalk_application" "todo_app" {
   description = "Node.js to-do application"
 }
 
-#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket
-resource "aws_s3_bucket" "app_versions" {
-  bucket        = "${var.name}-beanstalk-versions-${random_string.bucket_suffix.result}"
-  force_destroy = true
-}
-
-#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block
-resource "aws_s3_bucket_public_access_block" "app_versions" {
-  bucket = aws_s3_bucket.app_versions.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-#https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string
-resource "random_string" "bucket_suffix" {
-  length  = 8
-  special = false
-  upper   = false
-}
-
-#https://registry.terraform.io/providers/hashicorp/archive/latest/docs/data-sources/file
-data "archive_file" "app_zip" {
-  type        = "zip"
-  source_dir  = "../app"
-  output_path = "../app.zip"
-}
-
-#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object
-resource "aws_s3_object" "app_version" {
-  bucket = aws_s3_bucket.app_versions.bucket
-  key    = "app-${data.archive_file.app_zip.output_md5}.zip"
-  source = data.archive_file.app_zip.output_path
-  etag   = data.archive_file.app_zip.output_md5
-}
-
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elastic_beanstalk_application_version
 resource "aws_elastic_beanstalk_application_version" "app_version" {
   name        = "app-${data.archive_file.app_zip.output_md5}"
@@ -55,82 +17,6 @@ resource "aws_elastic_beanstalk_application_version" "app_version" {
   description = "Application version created by Terraform"
   bucket      = aws_s3_bucket.app_versions.bucket
   key         = aws_s3_object.app_version.key
-}
-
-# Security group for Application Load Balancer
-resource "aws_security_group" "beanstalk_alb" {
-  name_prefix = "beanstalk-alb-"
-  description = "Security group for Beanstalk Application Load Balancer"
-  vpc_id      = module.vpc.vpc.id
-
-  tags = {
-    Name = "beanstalk-alb-sg"
-  }
-}
-
-# Security group for EC2 instances
-resource "aws_security_group" "beanstalk_instances" {
-  name_prefix = "beanstalk-instances-"
-  description = "Security group for Beanstalk EC2 instances"
-  vpc_id      = module.vpc.vpc.id
-
-  tags = {
-    Name = "beanstalk-instances-sg"
-  }
-}
-
-# Security group rules
-resource "aws_security_group_rule" "alb_ingress" {
-  #checkov:skip=CKV_AWS_260: "Ensure no security groups allow ingress from 0.0.0.0:0 to port 80"
-  #Reason: Skipping for demo purposes to showcase Elastic Beanstalk functionality. 
-  #        For production workloads, implement proper access controls and consider using HTTPS with restricted CIDR blocks.
-  type              = "ingress"
-  from_port         = 80
-  to_port           = 80
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.beanstalk_alb.id
-  description       = "Allow HTTP traffic from internet to ALB"
-}
-
-resource "aws_security_group_rule" "alb_egress" {
-  type                     = "egress"
-  from_port                = 8080
-  to_port                  = 8080
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.beanstalk_instances.id
-  security_group_id        = aws_security_group.beanstalk_alb.id
-  description              = "Allow ALB to forward traffic to instances on port 8080"
-}
-
-resource "aws_security_group_rule" "instances_ingress" {
-  type                     = "ingress"
-  from_port                = 8080
-  to_port                  = 8080
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.beanstalk_alb.id
-  security_group_id        = aws_security_group.beanstalk_instances.id
-  description              = "Allow traffic from ALB to instances on port 8080"
-}
-
-resource "aws_security_group_rule" "instances_egress" {
-  type              = "egress"
-  from_port         = 443
-  to_port           = 443
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.beanstalk_instances.id
-  description       = "Allow HTTPS outbound for package downloads"
-}
-
-resource "aws_security_group_rule" "instances_egress_http" {
-  type              = "egress"
-  from_port         = 80
-  to_port           = 80
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  security_group_id = aws_security_group.beanstalk_instances.id
-  description       = "Allow HTTP outbound for package downloads"
 }
 
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/elastic_beanstalk_environment
