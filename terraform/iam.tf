@@ -49,6 +49,18 @@ resource "aws_iam_role_policy_attachment" "beanstalk_ec2_worker" {
   policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier"
 }
 
+# CloudWatch Logs permissions for EC2 instances
+resource "aws_iam_role_policy_attachment" "beanstalk_ec2_cloudwatch" {
+  role       = aws_iam_role.beanstalk_ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+}
+
+# Enhanced health reporting permissions
+resource "aws_iam_role_policy_attachment" "beanstalk_service_health" {
+  role       = aws_iam_role.beanstalk_service.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSElasticBeanstalkEnhancedHealth"
+}
+
 resource "aws_iam_instance_profile" "beanstalk_ec2" {
   name = "aws-elasticbeanstalk-ec2-role"
   role = aws_iam_role.beanstalk_ec2.name
