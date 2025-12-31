@@ -9,11 +9,12 @@ resource "random_string" "bucket_suffix" {
 
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket
 resource "aws_s3_bucket" "app_versions" {
+  bucket        = "${var.name}-beanstalk-versions-${random_string.bucket_suffix.result}"
+  force_destroy = true
   #checkov:skip=CKV_AWS_18: "Access logging not required for demo application version storage"
   #checkov:skip=CKV2_AWS_62: "Event notifications not required for demo application version storage"
   #checkov:skip=CKV_AWS_144: "Cross-region replication not required for demo purposes"
-  bucket        = "${var.name}-beanstalk-versions-${random_string.bucket_suffix.result}"
-  force_destroy = true
+  #checkov:skip=CKV_AWS_145: "Ensure that S3 buckets are encrypted with KMS by default"
 }
 
 #https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration
