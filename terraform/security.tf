@@ -1,6 +1,7 @@
 # Security groups for Elastic Beanstalk environment
 
 # Security group for Application Load Balancer
+#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group
 resource "aws_security_group" "beanstalk_alb" {
   #checkov:skip=CKV2_AWS_5: "Security group is attached to ALB via Beanstalk environment configuration"
   name_prefix = "beanstalk-alb-"
@@ -13,6 +14,7 @@ resource "aws_security_group" "beanstalk_alb" {
 }
 
 # Security group for EC2 instances
+#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group
 resource "aws_security_group" "beanstalk_instances" {
   #checkov:skip=CKV2_AWS_5: "Security group is attached to EC2 instances via Beanstalk environment configuration"
   name_prefix = "beanstalk-instances-"
@@ -25,6 +27,7 @@ resource "aws_security_group" "beanstalk_instances" {
 }
 
 # Security group rules
+#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule
 resource "aws_security_group_rule" "alb_ingress" {
   #checkov:skip=CKV_AWS_260: "Ensure no security groups allow ingress from 0.0.0.0:0 to port 80"
   #Reason: Skipping for demo purposes to showcase Elastic Beanstalk functionality. 
@@ -38,6 +41,7 @@ resource "aws_security_group_rule" "alb_ingress" {
   description       = "Allow HTTP traffic from internet to ALB"
 }
 
+#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule
 resource "aws_security_group_rule" "alb_egress" {
   type                     = "egress"
   from_port                = 8080
@@ -48,6 +52,7 @@ resource "aws_security_group_rule" "alb_egress" {
   description              = "Allow ALB to forward traffic to instances on port 8080"
 }
 
+#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule
 resource "aws_security_group_rule" "instances_ingress" {
   type                     = "ingress"
   from_port                = 8080
@@ -58,6 +63,7 @@ resource "aws_security_group_rule" "instances_ingress" {
   description              = "Allow traffic from ALB to instances on port 8080"
 }
 
+#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule
 resource "aws_security_group_rule" "instances_egress" {
   type              = "egress"
   from_port         = 443
@@ -68,6 +74,7 @@ resource "aws_security_group_rule" "instances_egress" {
   description       = "Allow HTTPS outbound for package downloads"
 }
 
+#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/security_group_rule
 resource "aws_security_group_rule" "instances_egress_http" {
   type              = "egress"
   from_port         = 80

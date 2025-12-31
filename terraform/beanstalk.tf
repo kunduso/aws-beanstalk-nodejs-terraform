@@ -1,4 +1,5 @@
 # Get latest Node.js 20 solution stack
+#https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/elastic_beanstalk_solution_stack
 data "aws_elastic_beanstalk_solution_stack" "nodejs" {
   most_recent = true
   name_regex  = "64bit Amazon Linux 2023.*Node.js 20"
